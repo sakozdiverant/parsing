@@ -13,7 +13,8 @@ USER_PASSWORD = os.getenv("USER_PASSWORD")
 brends = os.getenv("BRENDS").split(', ')
 reconect = int(os.getenv("RECONECT_SESION"))
 
-
+brends_env = os.getenv("BRENDS", "")
+brends = dict(item.split('=') for item in brends_env.split(', '))
 columns = ['Бренд','Тип устройства', 'Модель', 'Алматы',
            'Алатау', 'Астана', 'Шымкент', 'Караганда',
            'Pозница', 'Золото', 'Платина', 'Бриллиант']
@@ -61,9 +62,8 @@ def make_tab(brend, url):
 
 session = create_session()
 
-for brend in brends:
-    page = 1  # Начинаем с первой страницы
-    while True:
+for brend, brend_id in brends.items():
+    for page in range(1, int(brend_id) + 1):
         try:
             # Формируем URL
             if page == 1:
@@ -82,8 +82,14 @@ for brend in brends:
                     if page_now != page:
                         print(f"Страница {page - 1} для {brend} была последней.")
                         break
-                except:
-                    break
+                except Exception as inner_e:
+                    print(f"Ошибка определения страницы: {inner_e}")
+                    session = create_session()
+                    sleep(3)  # Задержка перед переподключением
+                    resp = session.get(url)
+                    soup = BeautifulSoup(resp.text, "html.parser")
+
+
             print(url)
             print(f"Обработка страницы {page} для бренда {brend}...")
 
@@ -95,13 +101,11 @@ for brend in brends:
             # Обработка страницы
             make_tab(brend, url)
 
-            # Увеличиваем номер страницы
-            page += 1
 
-            if page % reconect == 0:
-                print(f"Ошибка: {e}. Переподключаем сессию и продолжаем...")
-                session = create_session()
-                sleep(3)  # Задержка перед повторной попыткой
+            # if page % reconect == 0:
+            #     print("Переподключаем сессию...")
+            #     session = create_session()
+            #     sleep(3)  # Задержка перед переподключением
 
         except Exception as e:
             print(f"Ошибка: {e}. Переподключаем сессию и продолжаем...")
