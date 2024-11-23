@@ -12,12 +12,13 @@ USER_LOGIN = os.getenv("USER_LOGIN")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
 brends = os.getenv("BRENDS").split(', ')
 reconect = int(os.getenv("RECONECT_SESION"))
+name_file = os.getenv("NAMEFILE")
 
 brends_env = os.getenv("BRENDS", "")
 brends = dict(item.split('=') for item in brends_env.split(', '))
 columns = ['Бренд','Тип устройства', 'Модель', 'Алматы',
            'Алатау', 'Астана', 'Шымкент', 'Караганда',
-           'Pозница', 'Золото', 'Платина', 'Бриллиант']
+           'Pозница', 'Бронза', 'Золото', 'Платина', 'Бриллиант']
 df = pd.DataFrame(columns=columns)
 
 
@@ -57,7 +58,7 @@ def make_tab(brend, url):
             quantity = quantity.replace("&gt;", ">").strip()
             camera[city_q] = quantity
         df.loc[len(df)] = camera
-    df.to_excel("cameras.xlsx", index=False)
+    df.to_excel(f"{name_file}.xlsx", index=False)
     print("Данные сохранены в файл cameras.xlsx")
 
 session = create_session()
