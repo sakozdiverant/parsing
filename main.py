@@ -102,12 +102,6 @@ for brend, brend_id in brends.items():
             # Обработка страницы
             make_tab(brend, url)
 
-
-            # if page % reconect == 0:
-            #     print("Переподключаем сессию...")
-            #     session = create_session()
-            #     sleep(3)  # Задержка перед переподключением
-
         except Exception as e:
             print(f"Ошибка: {e}. Переподключаем сессию и продолжаем...")
             session = create_session()
