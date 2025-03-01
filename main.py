@@ -1,3 +1,25 @@
+"""Модуль для сбора данных о товарах с сайта barlau.kz.
+
+Этот скрипт выполняет аутентификацию на сайте, парсит данные о товарах
+определённых брендов и сохраняет их в файл Excel.
+
+Используемые библиотеки:
+- requests: для работы с HTTP-запросами
+- BeautifulSoup: для парсинга HTML-страниц
+- pandas: для работы с таблицами
+- time.sleep: для задержек между запросами
+- dotenv: для загрузки переменных окружения
+- os: для работы с переменными окружения
+
+Переменные окружения:
+- `USER_LOGIN`: Логин для авторизации
+- `USER_PASSWORD`: Пароль для авторизации
+- `BRENDS`: Список брендов и их максимальное количество страниц
+- `RECONECT_SESION`: Количество попыток переподключения
+- `NAMEFILE`: Имя выходного файла
+
+"""
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -18,7 +40,7 @@ brends_env = os.getenv("BRENDS", "")
 brends = dict(item.split('=') for item in brends_env.split(', '))
 columns = ['Бренд','Тип устройства', 'Модель', 'Алматы',
            'Алатау', 'Астана', 'Шымкент', 'Караганда',
-           'Pозница', 'Бронза', 'Золото', 'Платина', 'Бриллиант']
+           'Pозница', 'Оптовая', 'Золото', 'Платина', 'Бриллиант']
 df = pd.DataFrame(columns=columns)
 
 
@@ -31,6 +53,14 @@ data = {
 }
 
 def create_session():
+    """Создаёт и аутентифицирует сессию на сайте barlau.kz.
+
+    Returns:
+        requests.Session: Аутентифицированная сессия.
+
+    Raises:
+        SystemExit: Если авторизация не удалась.
+    """
     session = requests.Session()
     login_response = session.post(login_url, data=data)
     if login_response.status_code == 200 and "logout" in login_response.text.lower():
@@ -41,6 +71,19 @@ def create_session():
         exit()
 
 def make_tab(brend, url):
+    """Парсит страницу каталога бренда и добавляет данные в DataFrame.
+
+    Args:
+        brend (str): Название бренда.
+        url (str): URL страницы каталога.
+
+    Side Effects:
+        - Заполняет глобальный DataFrame `df`.
+        - Сохраняет данные в файл Excel.
+
+    Raises:
+        Exception: В случае ошибки парсинга страницы.
+    """
     resp = session.get(url)
     soup = BeautifulSoup(resp.text, "html.parser")
     divs = soup.find_all("div", class_="product-card-column")
@@ -66,17 +109,14 @@ session = create_session()
 for brend, brend_id in brends.items():
     for page in range(1, int(brend_id) + 1):
         try:
-            # Формируем URL
             if page == 1:
                 url = f"http://b2b.barlau.kz/catalog/{brend}/"
             else:
                 url = f"http://b2b.barlau.kz/catalog/{brend}/?PAGEN_2={page}"
 
-            # Получаем страницу
             resp = session.get(url)
             soup = BeautifulSoup(resp.text, "html.parser")
 
-            # Проверка на последнюю страницу
             if page != 1:
                 try:
                     page_now = int(soup.find("span", class_="block_page_current").text.strip())
@@ -94,21 +134,13 @@ for brend, brend_id in brends.items():
             print(url)
             print(f"Обработка страницы {page} для бренда {brend}...")
 
-            # Проверка валидности страницы
             if resp.status_code != 200:
                 print(f"Нет данных на странице {page} для {brend}. Завершаем.")
                 break
 
-            # Обработка страницы
             make_tab(brend, url)
-
-
-            # if page % reconect == 0:
-            #     print("Переподключаем сессию...")
-            #     session = create_session()
-            #     sleep(3)  # Задержка перед переподключением
 
         except Exception as e:
             print(f"Ошибка: {e}. Переподключаем сессию и продолжаем...")
             session = create_session()
-            sleep(3)  # Задержка перед повторной попыткой
+            sleep(3)
